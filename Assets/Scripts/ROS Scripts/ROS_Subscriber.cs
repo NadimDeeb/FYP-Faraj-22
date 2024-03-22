@@ -10,7 +10,7 @@ using Microsoft.MixedReality.Toolkit.UI;
 
 public class ROS_Subscriber : MonoBehaviour
 {
-    public OogwayController OoController;
+    public Wudang.Temple.Control.OogwayController OoController;
     public JointStateMsg JointState;
 
     // Start is called before the first frame update

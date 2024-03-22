@@ -5,89 +5,88 @@ using RosMessageTypes.Sensor;
 using Unity.Robotics.UrdfImporter.Control;
 using System;
 
-public class OogwayController : MonoBehaviour
+namespace Wudang.Temple.Control
 {
-    // Scripts
-    public ROS_Subscriber RosSub;
-    public Controller URDFController;
-    public ShifuControl Shifu;
+    public enum Rotation { None = 0 , Positive = 1, Negative = -1 };
 
-    // Variables
-    public ArticulationBody[] articulationChain_1;
-    public ArticulationBody[] articulationChain;
-    public float[] jointPositions;
-    public JointStateMsg JointState;
-    public float stiffness;
-    public float damping;
-    public float forceLimit;
-    public float speed;
-    public float torque;
-    public float acceleration;
-
-    // Start is called before the first frame update
-    void Start()
+    public class OogwayController : MonoBehaviour
     {
-        articulationChain_1 = this.GetComponentsInChildren<ArticulationBody>();
-        JointState = new JointStateMsg();
+        // Scripts
+        public ROS_Subscriber RosSub;
+        public Controller URDFController;
+        private ShifuControl current;
 
-        // Dropping the last element from the articulationChain array
-        articulationChain = new ArticulationBody[articulationChain_1.Length - 1];
-        Array.Copy(articulationChain_1, articulationChain, articulationChain.Length);
+        // Variables
+        public ArticulationBody[] articulationChain_temp;
+        public ArticulationBody[] articulationChain;
+        double delta;
+        public double[] position_deltas; // Clark hek beddo bas hay for direction
+        public JointStateMsg JointState;
+        public float stiffness;
+        public float damping;
+        public float forceLimit;
+        public float speed;
+        public float torque;
+        public float acceleration;
 
-        foreach (ArticulationBody joint in articulationChain)
+        // Start is called before the first frame update
+        void Start()
         {
-            joint.gameObject.AddComponent<ShifuControl>();
-            
-            joint.jointFriction = 10;
-            joint.angularDamping = 10;
-            ArticulationDrive currentDrive = joint.xDrive;
-            currentDrive.forceLimit = 1000;
-            joint.xDrive = currentDrive;
-        }
+            articulationChain_temp = this.GetComponentsInChildren<ArticulationBody>();
+            JointState = new JointStateMsg();
 
-        stiffness = URDFController.stiffness;
-        damping = URDFController.damping;
-        forceLimit = URDFController.forceLimit;
-        speed = URDFController.speed;
-        torque = URDFController.torque;
-        acceleration = URDFController.acceleration;
-    }
+            // Dropping elements from the articulationChain array
+            articulationChain = new ArticulationBody[6];
+            Array.Copy(articulationChain_temp, 1, articulationChain, 0, 6);
 
-    public IEnumerator JointArticulator()
-    {
-        //Debug.Log("Absolute sex");
-        while (true)
-        {
-            // Update joint positions based on JointState message
-            UpdateJointPositions();
-
-            // Wait for the next frame
-            yield return null;
-        }
-    }
-
-    private void UpdateJointPositions()
-    {
-        Debug.Log("UpdateJoint Called");
-        // Check if JointState message is available
-        if (JointState != null)
-        {
-            // Ensure the number of joints matches the number of elements in the articulation chain
-            if (JointState.name.Length == articulationChain.Length)
+            foreach (ArticulationBody joint in articulationChain)
             {
-                // Iterate over each joint and set its position based on the JointState message
-                for (int i = 0; i < articulationChain.Length; i++)
+                joint.gameObject.AddComponent<ShifuControl>();
+
+                joint.jointFriction = 10;
+                joint.angularDamping = 10;
+                ArticulationDrive currentDrive = joint.xDrive;
+                currentDrive.forceLimit = 1000;
+                joint.xDrive = currentDrive;
+            }
+
+            stiffness = URDFController.stiffness;
+            damping = URDFController.damping;
+            forceLimit = URDFController.forceLimit;
+            speed = URDFController.speed;
+            torque = URDFController.torque;
+            acceleration = URDFController.acceleration;
+        }
+
+        public IEnumerator JointArticulator()
+        {
+            // We can do this since we assume that the index in the position array is mapped to the joint name with the same index
+            for (int index = 0; index <= articulationChain.Length; index++)
+            {
+                delta = JointState.position[index] - articulationChain[index].xDrive.target;
+                position_deltas[index] = delta;
+            }
+
+            for(int index = 0; index <= position_deltas.Length; index++)
+            {
+                if (position_deltas[index] > 0) 
                 {
-                    // Save target joint position
-                    // It is assumed that the joint positions go from base to end effector
-                    jointPositions[i] = (float)JointState.position[i];
-                    //Debug.Log("Cool it worked");
+                    current = articulationChain[index].GetComponent<ShifuControl>();
+                    current.direction = Rotation.Positive;
+                }
+                else if (position_deltas[index] < 0)
+                {
+                    current = articulationChain[index].GetComponent<ShifuControl>();
+                    current.direction = Rotation.Negative;
+                }
+                else
+                {
+                    current = articulationChain[index].GetComponent<ShifuControl>();
+                    current.direction = Rotation.None;
                 }
             }
-            else
-            {
-                Debug.LogWarning("Number of joints in JointState message does not match the number of elements in the articulation chain.");
-            }
+
+            yield return null;
         }
     }
 }
