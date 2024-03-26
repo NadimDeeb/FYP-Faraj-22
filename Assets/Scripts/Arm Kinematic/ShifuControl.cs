@@ -25,7 +25,7 @@ public class ShifuControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Debug.Log("Start called");
+        Debug.Log("Shifu called");
         // Controller
         Oogway = (Wudang.Temple.Control.OogwayController)this.GetComponentInParent(typeof(Wudang.Temple.Control.OogwayController));
 
@@ -43,21 +43,18 @@ public class ShifuControl : MonoBehaviour
     private void FixedUpdate()
     {
         JointState = Oogway.JointState;
-
         speed = Oogway.speed;
         torque = Oogway.torque;
         acceleration = Oogway.acceleration;
 
-        for(int index = 0; index <= articulationChain.Length; index++)
+        if (articulationChain.Length > 0 && JointState.position.Length > 0)
         {
-            currentDrive = articulationChain[index].xDrive;
-            currentDrive.target = (float)JointState.position[index];
-            articulationChain[index].xDrive = currentDrive;
-
-            //if (articulationChain[index].jointType != ArticulationJointType.FixedJoint)
-            //{
-
-            //}
+            for (int index = 0; index < articulationChain.Length; index++)
+            {
+                currentDrive = articulationChain[index].xDrive;
+                currentDrive.target = (float)JointState.position[index];
+                articulationChain[index].xDrive = currentDrive;
+            }
         }
     }
 }

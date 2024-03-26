@@ -12,10 +12,14 @@ public class ROS_Subscriber : MonoBehaviour
 {
     public Wudang.Temple.Control.OogwayController OoController;
     public JointStateMsg JointState;
+    private AudioSource audioSource;
 
     // Start is called before the first frame update
     void Start()
     {
+        audioSource = GetComponent<AudioSource>();
+        audioSource.Stop();
+
         ROSConnection.GetOrCreateInstance().Subscribe<JointStateMsg>("/arm_joint_states", JointStateCB);
     }
 
@@ -28,6 +32,7 @@ public class ROS_Subscriber : MonoBehaviour
         OoController.JointState = JointState; //Set joint states received in controller
         Debug.Log("Received: " + msg.name[0]);
         Debug.Log("Received: " + msg.position[0]);
+        audioSource.Play();
 
         StartCoroutine(OoController.JointArticulator());
     }

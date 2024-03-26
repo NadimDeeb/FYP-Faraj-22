@@ -40,6 +40,8 @@ public class ROS_Publisher : MonoBehaviour
         // Subscribe to slider events
         SliderRightLeft.OnValueUpdated.AddListener(PublishMovementTwist);
         SliderForwardBack.OnValueUpdated.AddListener(PublishMovementTwist);
+
+        Physics.autoSimulation = true;
     }
 
     private IEnumerator PublishTwistRepeatedly()
