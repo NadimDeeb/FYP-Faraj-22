@@ -9,6 +9,12 @@ public class ShifuControl : MonoBehaviour
     private OogwayController Oogway;
     public ArticulationBody joint;
     public ArticulationDrive currentDrive;
+<<<<<<< Updated upstream
+=======
+    public JointStateMsg JointState;
+    public string[] MyJointNames;
+
+>>>>>>> Stashed changes
     public float speed;
     public float torque;
     public float acceleration;
@@ -16,8 +22,30 @@ public class ShifuControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+<<<<<<< Updated upstream
         Oogway = (OogwayController)this.GetComponentInParent(typeof(OogwayController));
         joint = this.GetComponent<ArticulationBody>();
+=======
+        Debug.Log("Shifu called");
+        // Controller
+        Oogway = (Wudang.Temple.Control.OogwayController)this.GetComponentInParent(typeof(Wudang.Temple.Control.OogwayController));
+
+        //Enums
+        direction = 0;
+
+        //ROS messages
+        JointState = new JointStateMsg();
+
+        //Variables
+        articulationChain = Oogway.articulationChain;
+        MyJointNames = Oogway.MyJointNames;
+    }
+
+    // Continuously updating arm joint states
+    private void FixedUpdate()
+    {
+        JointState = Oogway.JointState;
+>>>>>>> Stashed changes
         speed = Oogway.speed;
         torque = Oogway.torque;
         acceleration = Oogway.acceleration;
@@ -37,6 +65,7 @@ public class ShifuControl : MonoBehaviour
         // Ensure jointPositions array and jointIndex are valid
         if (jointPositions != null && jointIndex >= 0 && jointIndex < jointPositions.Length)
         {
+<<<<<<< Updated upstream
             // Set the target position of the joint
             currentDrive.target = jointPositions[jointIndex];
             joint.xDrive = currentDrive;
@@ -61,6 +90,47 @@ public class ShifuControl : MonoBehaviour
             }
         }
         return -1;
+=======
+            for (int index = 0; index < articulationChain.Length; index++)
+            {
+                Debug.Log(MyJointNames[index]);
+                Debug.Log(JointState.name[index]);
+                Debug.Log("----------------------------");
+
+                if (MyJointNames[index] == JointState.name[index])
+                {
+                    Debug.Log("Joint index found");
+                    currentDrive = articulationChain[index].xDrive;
+                    currentDrive.target = (float)JointState.position[index];
+                    articulationChain[index].xDrive = currentDrive;
+                }
+                else if (MyJointNames[index] != JointState.name[index])
+                {
+                    Debug.Log("Joint index found 2");
+                    int real_index = FindCorrectIndex(MyJointNames[index]);
+
+                    currentDrive = articulationChain[real_index].xDrive;
+                    currentDrive.target = (float)JointState.position[real_index];
+                    articulationChain[real_index].xDrive = currentDrive;
+                }
+            }
+        }
+    }
+
+    // Matches the correct joint with it's mapped position in the position array
+    private int FindCorrectIndex(string jointName)
+    {
+        int real_index = 0;
+        for(int seeker = 0; seeker < JointState.name.Length; seeker++)
+        {
+            if (jointName == JointState.name[seeker])
+            {
+                real_index = seeker;
+                return real_index;
+            }
+        }
+        return real_index;
+>>>>>>> Stashed changes
     }
 }
 

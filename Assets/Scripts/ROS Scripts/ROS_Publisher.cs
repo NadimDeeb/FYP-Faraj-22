@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using RosMessageTypes.Std;
 using RosMessageTypes.Geometry;
+using RosMessageTypes.Visualization;
 using Microsoft.MixedReality.Toolkit.UI;
 using Unity.Robotics.ROSTCPConnector;
 using UnityEngine.Rendering;
@@ -9,11 +10,15 @@ using UnityEngine.Rendering;
 public class ROS_Publisher : MonoBehaviour
 {
     // ROS variables
-    private ROSConnection ros;
+    private ROSConnection RosConnection;
     private string MovementTopic = "/cmd_vel";
 
     // Messages to be published
     private TwistMsg RobotMovTwist;
+    public MarkerArrayMsg MarkerArray;
+    private TwistMsg TwistFromMarker;
+    private Vector3Msg positionVector;
+    private Vector3Msg orientationVector;
 
     // External GameObjects
     public PinchSlider SliderRightLeft;
@@ -31,11 +36,15 @@ public class ROS_Publisher : MonoBehaviour
     private void Start()
     {
         // Initialize ROS connection and publisher
-        ros = ROSConnection.GetOrCreateInstance();
-        ros.RegisterPublisher<TwistMsg>(MovementTopic);
+        RosConnection = ROSConnection.GetOrCreateInstance();
+        RosConnection.RegisterPublisher<TwistMsg>(MovementTopic);
 
         // Initialize Twist message
         RobotMovTwist = new TwistMsg();
+        MarkerArray = new MarkerArrayMsg();
+        TwistFromMarker = new TwistMsg();
+        positionVector = new Vector3Msg();
+        orientationVector = new Vector3Msg();
 
         // Subscribe to slider events
         SliderRightLeft.OnValueUpdated.AddListener(PublishMovementTwist);
@@ -62,7 +71,7 @@ public class ROS_Publisher : MonoBehaviour
             }
 
             // Publish Twist message
-            ros.Publish(MovementTopic, RobotMovTwist);
+            RosConnection.Publish(MovementTopic, RobotMovTwist);
             Debug.Log("Published Twist - Linear: " + RobotMovTwist.linear.x + ", Angular: " + RobotMovTwist.angular.z);
 
             // Wait for 3 seconds before publishing again
@@ -129,6 +138,34 @@ public class ROS_Publisher : MonoBehaviour
         {
             movement_coroutine_running = true;
             StartCoroutine(PublishTwistRepeatedly());
+        }
+    }
+
+    public void PublishFromMarkerArray()
+    {
+        foreach (var marker in MarkerArray.markers)
+        {
+            // Extracting position information
+            PointMsg position = marker.pose.position;
+            
+            positionVector.x = position.x;
+            positionVector.y = position.y;
+            positionVector.z = position.z;
+
+            // Extracting orientation information
+            QuaternionMsg orientation = marker.pose.orientation;
+            
+            orientationVector.x = orientation.x;
+            orientationVector.y = orientation.y;
+            orientationVector.z = orientation.z;
+
+            // Creating a Twist message from pose and orientation information
+            TwistFromMarker.linear = positionVector;
+            TwistFromMarker.angular = orientationVector;
+
+            // Publish Twist message
+            RosConnection.Publish(MovementTopic, TwistFromMarker);
+            Debug.Log("Published Twist from Marker - Linear: " + TwistFromMarker.linear.x + ", Angular: " + TwistFromMarker.angular.z);
         }
     }
 }
